@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paint.js</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #222;
+            padding: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #fff94d;
+            font-size: 12px;
+            font-weight: 600;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            img {
+                width: 20px;
+                height: auto;
+            }
+        }
+        canvas {
+            background-color: #fff;
+        }
+        header {
+            background: silver;
+            padding: 2px;
+
+            button {
+                border: 0;
+                background: transparent;
+
+                &:hover {
+                    box-shadow: 
+                        1px 1px black,
+                        inset -1px -1px gray,
+                        inset 1px 1px white;
+
+                }
+            }
+        }
+        main {
+            padding: 16px;
+        }
+        footer {
+            background: silver;
+            padding: 4px;
+        }
+
+        #container {
+            border: 1px solid #808080;
+        }
+    </style>
+    <script type="module">  // El type=module es de tipo 'defer', por lo que el script se ejecutará cuando el DOM esté listo
+        // CONSTANTES ------------------------------
+        const MODES = {
+            DRAW: 'draw',
+            ERASE: 'erase',
+            RECTANGLE: 'rectangle',
+            ELLIPSE: 'elipse',
+            PICKER: 'picker'
+        }
+
+        // UTILS -----------------------------------
+        const $ = selector => document.querySelector(selector);
+        const $$ = selector => document.querySelectorAll(selector);
+
+        // ELEMENTOS -------------------------------
+        const $canvas = $('#canvas'); // El simbolo de $ al principio es una convención para saber que la variable contiene un elemento del DOM
+        const $colorPicker = $('#color-picker');
+
+        const ctx = $canvas.getContext('2d');
+
+        // STATE -----------------------------------
+        let isDrawing = false;
+        let startX, startY;
+        let lastX = 0;
+        let lastY = 0;
+        let mode = MODES.DRAW;
+        let color = '#000000';
+
+        // EVENTS ----------------------------------
+        $canvas.addEventListener('mousedown', startDrawing);
+        $canvas.addEventListener('mousemove', draw);
+        $canvas.addEventListener('mouseup', stopDrawing);
+        $canvas.addEventListener('mouseleave', stopDrawing);
+
+        $colorPicker.addEventListener('change', handleChangeColor);
+        
+
+        // METHODS ---------------------------------
+        function startDrawing(event) {
+            isDrawing = true;
+            const { offsetX, offsetY } = event;
+            
+            [startX, startY] = [offsetX, offsetY]; 
+            [lastX, lastY] = [offsetX, offsetY]; 
+        }
+
+        function draw(event) {
+            if (!isDrawing) return;
+
+            const { offsetX, offsetY } = event;
+
+            ctx.beginPath(); // Iniciar trazado
+            ctx.moveTo(lastX, lastY); // Mover trazado a coordenadas actuales
+            ctx.lineTo(offsetX, offsetY); // Trazar linea desde coordenadas actuales hasta coordenadas del evento
+            ctx.stroke(); // Dibujar linea
+
+            [lastX, lastY] = [offsetX, offsetY]; // Actualizar coordenadas del último punto
+        }
+
+        function stopDrawing(event) {
+            isDrawing = false;
+        }
+
+        function handleChangeColor(event) {
+            color = event.target.value;
+            ctx.strokeStyle = color;
+        }
+
+
+    </script>
+</head>
+<body>
+    <h1> <img src="icon.png" alt="Paint.js icon"> Paint.js </h1>
+
+    <div id="container">
+        <header>
+            <button>File</button>
+            <button>Edit</button>
+            <button>View</button>
+            <button>Image</button>
+            <button>Options</button>
+            <button>Help</button>
+        </header>
+    
+        <main>
+            <canvas id="canvas" width="300" height="200"></canvas>
+        </main>
+    
+        <footer>
+            <input type="color" id="color-picker" value="#000000">
+        </footer>
+    </div>
+</body>
+</html>
