@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paint.js</title>
     <style>
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Arial', sans-serif;
             background: #222;
@@ -15,6 +19,7 @@
             max-width: 500px;
             margin: 0 auto;
         }
+
         h1 {
             color: #fff94d;
             font-size: 12px;
@@ -29,10 +34,14 @@
                 height: auto;
             }
         }
+
         canvas {
             background-color: #fff;
         }
+
         header {
+            grid-area: header;
+
             background: silver;
             padding: 2px;
 
@@ -41,7 +50,7 @@
                 background: transparent;
 
                 &:hover {
-                    box-shadow: 
+                    box-shadow:
                         1px 1px black,
                         inset -1px -1px gray,
                         inset 1px 1px white;
@@ -49,16 +58,82 @@
                 }
             }
         }
+
         main {
+            grid-area: main;
             padding: 16px;
         }
+
         footer {
+            grid-area: footer;
+
             background: silver;
             padding: 4px;
         }
 
         #container {
             border: 1px solid #808080;
+
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "aside main main"
+                "footer footer footer";
+        }
+
+        aside {
+            grid-area: aside;
+
+            background: silver;
+            width: 52px;
+            padding-top: 2px;
+
+            nav {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-around;
+                align-items: center;
+            }
+
+            button {
+                width: 24px;
+                height: 24px;
+
+                background: #bdbdbd url('icons/draw.png') no-repeat center;
+
+                border: 1.5px solid #eee;
+                border-right-color: #000;
+                border-bottom-color: #000;
+
+                image-rendering: pixelated;
+
+
+                &.active {
+                    border-color: #000;
+                    border-right-color: #eee;
+                    border-bottom-color: #eee;
+                }
+            }
+        }
+
+        #erase-btn {
+            background-image: url('icons/erase.png');
+        }
+
+        #rectangle-btn {
+            background-image: url('icons/rectangle.png');
+        }
+
+        #ellipse {
+            background-image: url('icons/ellipse.png');
+        }
+
+        #picker-btn {
+            background-image: url('icons/picker.png');
+        }
+
+        #clear-btn {
+            background-image: url('icons/clear.png');
         }
     </style>
     <script type="module">  // El type=module es de tipo 'defer', por lo que el script se ejecutará cuando el DOM esté listo
@@ -78,6 +153,9 @@
         // ELEMENTOS -------------------------------
         const $canvas = $('#canvas'); // El simbolo de $ al principio es una convención para saber que la variable contiene un elemento del DOM
         const $colorPicker = $('#color-picker');
+        const $clearBtn = $('#clear-btn');
+        const $drawBtn = $('#draw-btn');
+        const $rectangleBtn = $('#rectangle-btn');
 
         const ctx = $canvas.getContext('2d');
 
@@ -88,6 +166,7 @@
         let lastY = 0;
         let mode = MODES.DRAW;
         let color = '#000000';
+        let imageData;
 
         // EVENTS ----------------------------------
         $canvas.addEventListener('mousedown', startDrawing);
@@ -96,15 +175,25 @@
         $canvas.addEventListener('mouseleave', stopDrawing);
 
         $colorPicker.addEventListener('change', handleChangeColor);
-        
+
+        $clearBtn.addEventListener('click', clearCanvas);
+        $drawBtn.addEventListener('click', () => {
+            setMode(MODES.DRAW);
+        });
+        $rectangleBtn.addEventListener('click',  () => {
+            setMode(MODES.RECTANGLE);
+        });
+
 
         // METHODS ---------------------------------
         function startDrawing(event) {
             isDrawing = true;
             const { offsetX, offsetY } = event;
-            
-            [startX, startY] = [offsetX, offsetY]; 
-            [lastX, lastY] = [offsetX, offsetY]; 
+
+            [startX, startY] = [offsetX, offsetY];
+            [lastX, lastY] = [offsetX, offsetY];
+
+            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         }
 
         function draw(event) {
@@ -112,12 +201,30 @@
 
             const { offsetX, offsetY } = event;
 
-            ctx.beginPath(); // Iniciar trazado
-            ctx.moveTo(lastX, lastY); // Mover trazado a coordenadas actuales
-            ctx.lineTo(offsetX, offsetY); // Trazar linea desde coordenadas actuales hasta coordenadas del evento
-            ctx.stroke(); // Dibujar linea
+            if(mode === MODES.DRAW) {
+                ctx.beginPath(); // Iniciar trazado
+                ctx.moveTo(lastX, lastY); // Mover trazado a coordenadas actuales
+                ctx.lineTo(offsetX, offsetY); // Trazar linea desde coordenadas actuales hasta coordenadas del evento
+                ctx.stroke(); // Dibujar linea
 
-            [lastX, lastY] = [offsetX, offsetY]; // Actualizar coordenadas del último punto
+                [lastX, lastY] = [offsetX, offsetY]; // Actualizar coordenadas del último punto
+                return;
+            }
+
+            if (mode === MODES.RECTANGLE) {
+                ctx.putImageData(imageData, 0, 0);
+                
+                const width = offsetX - startX;
+                const height = offsetY - startY;
+
+                ctx.beginPath();
+                ctx.rect(startX, startY, width, height);
+                ctx.stroke();
+
+                return;
+            }
+
+
         }
 
         function stopDrawing(event) {
@@ -129,9 +236,33 @@
             ctx.strokeStyle = color;
         }
 
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+
+            $('.active')?.classList.remove('active');
+            if (mode === MODES.DRAW) {
+                // DIBUJO
+                $drawBtn.classList.add('active');
+                canvas.style.cursor = 'crosshair';
+                ctx.lineWidth = 2;
+                return;
+            }
+            if (mode === MODES.RECTANGLE) {
+                // RECTANGULO
+                $rectangleBtn.classList.add('active');
+                canvas.style.cursor = 'nw-resize';
+                ctx.lineWidth = 2;
+                return;
+            }
+        }
 
     </script>
 </head>
+
 <body>
     <h1> <img src="icon.png" alt="Paint.js icon"> Paint.js </h1>
 
@@ -144,14 +275,26 @@
             <button>Options</button>
             <button>Help</button>
         </header>
-    
+
+        <aside>
+            <nav>
+                <button class="active" id="draw-btn" title="Pincel"></button>
+                <button id="erase-btn" title="Borrar"></button>
+                <button id="rectangle-btn" title="Rectángulo"></button>
+                <button id="ellipse" title="Elipse"></button>
+                <button id="picker-btn" title="Capturar color"></button>
+                <button id="clear-btn" title="Limpiar dibujo"></button>
+            </nav>
+        </aside>
+
         <main>
             <canvas id="canvas" width="300" height="200"></canvas>
         </main>
-    
+
         <footer>
             <input type="color" id="color-picker" value="#000000">
         </footer>
     </div>
 </body>
+
 </html>
